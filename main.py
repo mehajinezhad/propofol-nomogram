@@ -1,16 +1,11 @@
+import io
 import matplotlib
-matplotlib.use("Agg")
-
+matplotlib.use("Agg")  # حتماً قبل از import pyplot
 import matplotlib.pyplot as plt
-import numpy as np
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Response
+# ... سایر importها ...
 
 app = FastAPI()
-
-@app.get("/")
-def home():
-    return {"status": "ok", "message": "Go to /generate-nomogram"}
 
 @app.get("/generate-nomogram")
 def generate_nomogram():
@@ -19,13 +14,21 @@ def generate_nomogram():
     # (همان کدی که در main.py فعلی دارید)
     # ==========================================
     fig, ax = plt.subplots(figsize=(10, 14))
-    ax.set_xlim(-2, 17)
-    ax.set_ylim(0, 22)
-    ax.axis("off")
-    # ... تمام کدهای رسم محورها، مثال، کادرها ...
+    # ... تمام کدهای رسم محورها، مثال، کادرها و ...
     # ... تا انتهای بخش رسم ...
 
-    plt.savefig("propofol_z_nomogram.png", dpi=300, bbox_inches="tight")
+    # ==========================================
+    # بخش حیاتی: تولید و ارسال تصویر
+    # ==========================================
+    # ۱. ذخیره نمودار در یک بافر حافظه (نه روی دیسک)
+    img_buf = io.BytesIO()
+    
+    # ۲. ذخیره با فرمت PNG. نکته: هیچ‌جا plt.show() فراخوانی نکنید!
+    plt.savefig(img_buf, format="png", dpi=300, bbox_inches="tight")
+    
+    # ۳. بستن figure برای آزادسازی حافظه
     plt.close(fig)
 
-    return FileResponse("propofol_z_nomogram.png", media_type="image/png")
+    # ۴. بازگرداندن بایت‌های تصویر با هدر صحیح
+    img_buf.seek(0)  # بازگرداندن نشانگر به ابتدای بافر
+    return Response(content=img_buf.getvalue(), media_type="image/png")
